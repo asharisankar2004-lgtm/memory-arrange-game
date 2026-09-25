@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Memory Arrange Challenge</title>
+<style>
+:root{
+  --bg:#FFF8EC; --card:#fff; --ink:#2B2118; --muted:#8a7c6a;
+  --accent:#FFB020; --accent2:#FF6B4A; --good:#2FAE5B; --bad:#E5484D;
+  --shadow: 0 10px 24px rgba(43,33,24,.14), 0 2px 6px rgba(43,33,24,.08);
+  --r:20px;
+  padding-top: env(safe-area-inset-top,0px); padding-bottom: env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+[data-theme="teens"]{ --accent:#C64FDB; --accent2:#FF3D8A; --bg:#FBF3FF; }
+[data-theme="adults"]{ --accent:#1E88A8; --accent2:#0F5E75; --bg:#F1F8FA; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background:var(--bg); color:var(--ink); overflow-x:hidden;
+  transition:background .4s ease;
+}
+.wrap{max-width:960px;margin:0 auto;padding:18px 16px 40px}
+h1,h2,h3{font-family:'Baloo 2','Segoe UI',sans-serif; margin:0}
+.screen{display:none; animation:fade .35s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)}}
+
+/* HOME */
+.hero{text-align:center; padding:36px 10px 10px; position:relative}
+.floaties{position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:24px}
+.floaties span{position:absolute; font-size:34px; opacity:.18; animation:drift 9s linear infinite}
+@keyframes drift{from{transform:translateY(110%) rotate(0)} to{transform:translateY(-110%) rotate(30deg)}}
+.title{font-size:clamp(28px,6vw,46px); font-weight:800; letter-spacing:.5px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+.subtitle{color:var(--muted); font-size:16px; margin-top:6px}
+.modes{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:26px 0}
+.mode-card{width:150px; padding:18px 10px; border-radius:var(--r); background:var(--card); box-shadow:var(--shadow);
+  cursor:pointer; border:3px solid transparent; transition:transform .18s, border-color .18s}
+.mode-card:hover{transform:translateY(-6px) scale(1.03)}
+.mode-card.selected{border-color:var(--accent)}
+.mode-card .emoji{font-size:38px}
+.mode-card b{display:block; margin-top:6px}
+.mode-card small{color:var(--muted)}
+.btnrow{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:8px}
+.btn{border:none; border-radius:999px; padding:14px 28px; font-size:16px; font-weight:700; cursor:pointer;
+  box-shadow:var(--shadow); transition:transform .15s, box-shadow .15s}
+.btn:hover{transform:translateY(-3px)}
+.btn:active{transform:translateY(0)}
+.btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff}
+.btn.ghost{background:var(--card); color:var(--ink)}
+.btn:focus-visible{outline:3px solid var(--accent2); outline-offset:2px}
+
+/* GAME HEADER */
+.gamebar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px}
+.pill{background:var(--card); border-radius:999px; padding:8px 16px; box-shadow:var(--shadow); font-weight:700; font-size:14px}
+.streak{color:var(--accent2)}
+
+/* CARDS */
+.tray{display:flex; gap:14px; flex-wrap:wrap; justify-content:center; padding:20px 10px; min-height:150px}
+.card{
+  width:110px; height:140px; background:var(--card); border-radius:16px; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  user-select:none; touch-action:none; position:relative; border:2px solid rgba(0,0,0,.03);
+  animation:pop .4s ease backwards;
+}
+.card .ic{font-size:40px}
+.card .nm{font-size:12px; font-weight:700; text-align:center; padding:0 6px; letter-spacing:.2px}
+@keyframes pop{from{opacity:0; transform:scale(.6) translateY(10px)} to{opacity:1; transform:scale(1) translateY(0)}}
+.card.dragging{opacity:.25}
+.ghost-card{position:fixed; z-index:50; pointer-events:none; width:110px; height:140px; border-radius:16px;
+  background:var(--card); box-shadow:0 18px 34px rgba(0,0,0,.28); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:8px; transform:scale(1.06) rotate(-2deg)}
+.card.correct{outline:3px solid var(--good)}
+.card.wrong{outline:3px solid var(--bad); animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}}
+.slot-highlight{outline:3px dashed var(--accent); outline-offset:-3px}
+
+.center-msg{text-align:center; margin:10px 0 4px}
+.center-msg h2{font-size:clamp(22px,5vw,32px)}
+.countdown{font-size:64px; font-weight:800; color:var(--accent2); text-align:center; margin:6px 0}
+.barouter{height:10px; background:#eee; border-radius:99px; overflow:hidden; max-width:400px; margin:10px auto}
+.barinner{height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); width:100%; transition:width .1s linear}
+
+/* RESULT */
+.result{text-align:center; padding:10px}
+.big-score{font-size:56px; font-weight:800; color:var(--accent2)}
+.stat-row{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:16px 0}
+.stat{background:var(--card); border-radius:16px; padding:12px 18px; box-shadow:var(--shadow); min-width:100px}
+.stat b{display:block; font-size:20px}
+.stat span{color:var(--muted); font-size:12px}
+.stars{font-size:30px; letter-spacing:4px; color:var(--accent)}
+
+/* LEADERBOARD */
+table{width:100%; border-collapse:collapse; background:var(--card); border-radius:16px; overflow:hidden; box-shadow:var(--shadow)}
+th,td{padding:10px 8px; text-align:left; font-size:14px}
+th{background:rgba(0,0,0,.04)}
+tr:nth-child(even){background:rgba(0,0,0,.02)}
+
+.topnav{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px}
+.link-back{background:none; border:none; color:var(--muted); font-weight:700; cursor:pointer; font-size:14px}
+
+#confetti{position:fixed; inset:0; pointer-events:none; z-index:80}
+.confetti-piece{position:absolute; width:8px; height:14px; top:-20px; border-radius:2px; animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg); opacity:.9}}
+
+@media (max-width:520px){ .card{width:88px; height:112px} .card .ic{font-size:30px} }
+</style>
+</head>
+<body>
+<div id="confetti"></div>
+<div class="wrap">
+
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="hero">
+      <div class="floaties" id="floaties"></div>
+      <div class="title">MEMORY ARRANGE CHALLENGE</div>
+      <div class="subtitle">Look • Remember • Shuffle • Arrange</div>
+    </div>
+    <div class="modes" id="modeCards"></div>
+    <div class="btnrow">
+      <button class="btn primary" id="playBtn">PLAY</button>
+      <button class="btn ghost" data-go="howto">HOW TO PLAY</button>
+      <button class="btn ghost" data-go="leaderboard">LEADERBOARD</button>
+      <button class="btn ghost" id="muteBtn">🔊 SOUND</button>
+    </div>
+  </section>
+
+  <!-- HOW TO PLAY -->
+  <section class="screen" id="screen-howto">
+    <div class="topnav"><button class="link-back" data-go="home">← BACK</button></div>
+    <h2>How to Play</h2>
+    <p>1. Study the row of cards during the memorize timer.<br>
+    2. The cards shuffle and hide the original order.<br>
+    3. Drag cards to rebuild the exact original sequence.<br>
+    4. Submit your answer to see your score, accuracy and time.</p>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section class="screen" id="screen-leaderboard">
+    <div class="topnav"><button class="link-back" data-go="home">← BACK</button></div>
+    <h2>🏆 Leaderboard</h2>
+    <table><thead><tr><th>Rank</th><th>Player</th><th>Level</th><th>Score</th><th>Acc.</th><th>Time</th></tr></thead>
+    <tbody id="lbBody"></tbody></table>
+  </section>
+
+  <!-- GAME -->
+  <section class="screen" id="screen-game">
+    <div class="gamebar">
+      <span class="pill" id="levelPill">Level 1</span>
+      <span class="pill streak" id="streakPill">🔥 0</span>
+      <button class="link-back" data-go="home">✕ QUIT</button>
+    </div>
+    <div class="center-msg"><h2 id="phaseTitle">MEMORIZE!</h2></div>
+    <div class="countdown" id="countdown" style="display:none">10</div>
+    <div class="barouter" id="barouter" style="display:none"><div class="barinner" id="barinner"></div></div>
+    <div class="tray" id="tray"></div>
+    <div class="btnrow" id="arrangeActions" style="display:none">
+      <button class="btn primary" id="submitBtn">SUBMIT ANSWER</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen" id="screen-result">
+    <div class="result">
+      <h2 id="resultHead">🎉 GREAT JOB!</h2>
+      <div class="big-score" id="scoreOut">0</div>
+      <div class="stars" id="starsOut">★★★★★</div>
+      <div class="stat-row">
+        <div class="stat"><b id="accOut">0%</b><span>ACCURACY</span></div>
+        <div class="stat"><b id="timeOut">0s</b><span>TIME</span></div>
+        <div class="stat"><b id="correctOut">0/0</b><span>CORRECT</span></div>
+        <div class="stat"><b id="streakOut">0</b><span>STREAK</span></div>
+      </div>
+      <div class="tray" id="resultTray"></div>
+      <div class="btnrow">
+        <button class="btn primary" id="nextLevelBtn">NEXT LEVEL</button>
+        <button class="btn ghost" id="playAgainBtn">PLAY AGAIN</button>
+        <button class="btn ghost" data-go="home">BACK TO HOME</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const FOODS = [
+ {id:'burger',ic:'🍔',nm:'Burger'},{id:'fries',ic:'🍟',nm:'Fries'},{id:'cola',ic:'🥤',nm:'Cola'},
+ {id:'icecream',ic:'🍦',nm:'Soft Serve'},{id:'wrap',ic:'🌯',nm:'Chicken Wrap'},{id:'nuggets',ic:'🍗',nm:'Nuggets'},
+ {id:'veg',ic:'🥗',nm:'Veg Strips'},{id:'americano',ic:'☕',nm:'Americano'},{id:'iced',ic:'🧊',nm:'Iced Americano'},
+ {id:'capp',ic:'☕',nm:'Cappuccino'},{id:'mocha',ic:'🍫',nm:'Mocha'},{id:'frappe',ic:'🥤',nm:'Frappe'},
+ {id:'choc',ic:'🍫',nm:'Choc Shake'},{id:'straw',ic:'🍓',nm:'Straw Shake'},{id:'mango',ic:'🥭',nm:'Mango Smoothie'},
+ {id:'berry',ic:'🫐',nm:'Berry Cooler'},{id:'mint',ic:'🌿',nm:'Mint Cooler'},{id:'cold',ic:'🧋',nm:'Cold Coffee'},
+ {id:'hotchoc',ic:'🍩',nm:'Hot Chocolate'}
+];
+const MODES = {
+ kids:{label:'KIDS',emoji:'🧒',theme:'kids',counts:[4,5,6],time:10},
+ teens:{label:'TEENS',emoji:'🧑',theme:'teens',counts:[6,7,8],time:8},
+ adults:{label:'ADULTS',emoji:'🧑\u200d💼',theme:'adults',counts:[8,10,12],time:6}
+};
+let state = {mode:'kids', level:1, streak:0, muted:false,
+  original:[], shuffled:[], player:[], dragSrc:null, startTime:0};
+
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+function show(id){ $$('.screen').forEach(s=>s.classList.remove('active')); $('#'+id).classList.add('active'); }
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>show('screen-'+b.dataset.go)));
+
+// audio (simple beeps, no autoplay)
+let actx;
+function beep(freq=440,dur=.08){
+  if(state.muted) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.frequency.value=freq; o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(.15,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+dur);
+    o.start(); o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+$('#muteBtn').addEventListener('click',()=>{
+  state.muted=!state.muted;
+  $('#muteBtn').textContent = state.muted? '🔇 MUTED' : '🔊 SOUND';
+});
+
+// home floaties
+const fl=$('#floaties'); const emojis=['🍔','🍟','🥤','🍦','🌯'];
+for(let i=0;i<10;i++){
+  const s=document.createElement('span');
+  s.textContent=emojis[i%emojis.length];
+  s.style.left=(Math.random()*95)+'%';
+  s.style.animationDelay=(Math.random()*9)+'s';
+  s.style.animationDuration=(7+Math.random()*5)+'s';
+  fl.appendChild(s);
+}
+
+// mode cards
+const modeWrap=$('#modeCards');
+Object.entries(MODES).forEach(([key,m])=>{
+  const el=document.createElement('div');
+  el.className='mode-card'+(key===state.mode?' selected':'');
+  el.dataset.mode=key;
+  el.innerHTML=`<div class="emoji">${m.emoji}</div><b>${m.label}</b><small>${m.counts[0]}-${m.counts[2]} cards</small>`;
+  el.addEventListener('click',()=>{
+    state.mode=key; state.level=1;
+    $$('.mode-card').forEach(c=>c.classList.remove('selected'));
+    el.classList.add('selected');
+  });
+  modeWrap.appendChild(el);
+});
+
+$('#playBtn').addEventListener('click', startLevel);
+$('#nextLevelBtn').addEventListener('click',()=>{ state.level++; startLevel(); });
+$('#playAgainBtn').addEventListener('click', startLevel);
+
+function pickCards(n){
+  const pool=[...FOODS].sort(()=>Math.random()-.5);
+  return pool.slice(0,n);
+}
+function shuffleArr(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function startLevel(){
+  const m=MODES[state.mode];
+  document.documentElement.setAttribute('data-theme', m.theme==='kids'?'':m.theme);
+  const idx=Math.min(state.level-1, m.counts.length-1);
+  const n=m.counts[idx];
+  state.original=pickCards(n);
+  state.shuffled=shuffleArr(state.original);
+  state.player=[];
+  $('#levelPill').textContent='Level '+state.level+' · '+m.label;
+  $('#streakPill').textContent='🔥 '+state.streak;
+  show('screen-game');
+  runMemoryPhase(m.time);
+}
+
+function renderTray(list, opts={}){
+  const tray=$('#tray'); tray.innerHTML='';
+  list.forEach((c,i)=>{
+    const el=document.createElement('div');
+    el.className='card'; el.style.animationDelay=(i*0.05)+'s';
+    el.dataset.id=c.id;
+    el.innerHTML=`<div class="ic">${c.ic}</div><div class="nm">${c.nm}</div>`;
+    el.tabIndex=0; el.setAttribute('role','group'); el.setAttribute('aria-label',c.nm+' card, position '+(i+1));
+    tray.appendChild(el);
+  });
+}
+
+function runMemoryPhase(seconds){
+  $('#phaseTitle').textContent='MEMORIZE THE ORDER!';
+  $('#countdown').style.display='block';
+  $('#barouter').style.display='block';
+  $('#arrangeActions').style.display='none';
+  renderTray(state.original);
+  let t=seconds, total=seconds*10;
+  $('#countdown').textContent=t;
+  $('#barinner').style.width='100%';
+  beep(520);
+  const iv=setInterval(()=>{
+    total--; $('#barinner').style.width=(total/(seconds*10)*100)+'%';
+    const newT=Math.ceil(total/10);
+    if(newT!==t){ t=newT; $('#countdown').textContent=t; if(t>0) beep(440); }
+    if(total<=0){ clearInterval(iv); runShufflePhase(); }
+  },100);
+}
+
+function runShufflePhase(){
+  $('#phaseTitle').textContent='TIME TO ARRANGE!';
+  $('#countdown').style.display='none';
+  $('#barouter').style.display='none';
+  const tray=$('#tray');
+  tray.style.transition='opacity .25s'; tray.style.opacity='0';
+  beep(300,.15);
+  setTimeout(()=>{
+    renderTray(state.shuffled);
+    tray.style.opacity='1';
+    $('#arrangeActions').style.display='flex';
+    enableDrag();
+    state.startTime=Date.now();
+  },260);
+}
+
+// Pointer-based drag & drop (mouse + touch)
+function enableDrag(){
+  const tray=$('#tray');
+  let dragEl=null, ghost=null, srcIndex=null;
+
+  tray.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('pointerdown', e=>{
+      dragEl=card; srcIndex=[...tray.children].indexOf(card);
+      card.classList.add('dragging');
+      ghost=card.cloneNode(true); ghost.classList.remove('dragging');
+      ghost.classList.add('ghost-card');
+      document.body.appendChild(ghost);
+      moveGhost(e);
+      card.setPointerCapture(e.pointerId);
+      beep(600,.05);
+    });
+    card.addEventListener('pointermove', e=>{
+      if(!dragEl) return;
+      moveGhost(e);
+      const under=document.elementFromPoint(e.clientX,e.clientY);
+      const overCard=under && under.closest('.card');
+      $$('.card').forEach(c=>c.classList.remove('slot-highlight'));
+      if(overCard && overCard!==dragEl) overCard.classList.add('slot-highlight');
+    });
+    card.addEventListener('pointerup', e=>{
+      if(!dragEl) return;
+      const under=document.elementFromPoint(e.clientX,e.clientY);
+      const overCard=under && under.closest('.card');
+      $$('.card').forEach(c=>c.classList.remove('slot-highlight'));
+      if(overCard && overCard!==dragEl){
+        const targetIndex=[...tray.children].indexOf(overCard);
+        const nodes=[...tray.children];
+        if(srcIndex<targetIndex) tray.insertBefore(dragEl, overCard.nextSibling);
+        else tray.insertBefore(dragEl, overCard);
+        beep(700,.06);
+      }
+      dragEl.classList.remove('dragging');
+      if(ghost){ ghost.remove(); ghost=null; }
+      dragEl=null; srcIndex=null;
+    });
+  });
+  function moveGhost(e){
+    if(!ghost) return;
+    ghost.style.left=(e.clientX-55)+'px';
+    ghost.style.top=(e.clientY-70)+'px';
+  }
+}
+
+$('#submitBtn').addEventListener('click', submitAnswer);
+
+function submitAnswer(){
+  const tray=$('#tray');
+  state.player=[...tray.children].map(el=>el.dataset.id);
+  const origIds=state.original.map(c=>c.id);
+  let correct=0;
+  state.player.forEach((id,i)=>{
+    const el=tray.children[i];
+    if(id===origIds[i]){ correct++; el.classList.add('correct'); beep(880,.05); }
+    else { el.classList.add('wrong'); beep(180,.12); }
+  });
+  const timeSec=((Date.now()-state.startTime)/1000);
+  const accuracy=Math.round((correct/origIds.length)*100);
+  const timeBonus=Math.max(0, Math.round((15-timeSec)*8));
+  const score=Math.round(correct*(100/origIds.length)*8) + timeBonus;
+  if(accuracy===100){ state.streak++; } else { state.streak=0; }
+
+  setTimeout(()=>{ showResult(score, accuracy, timeSec, correct, origIds.length); }, 700);
+}
+
+function showResult(score, accuracy, timeSec, correct, total){
+  show('screen-result');
+  $('#resultHead').textContent = accuracy===100? '🎉 PERFECT MEMORY!' : accuracy>=60? '👍 ALMOST THERE!' : '🔁 TRY AGAIN!';
+  $('#scoreOut').textContent = score;
+  $('#accOut').textContent = accuracy+'%';
+  $('#timeOut').textContent = timeSec.toFixed(1)+'s';
+  $('#correctOut').textContent = correct+'/'+total;
+  $('#streakOut').textContent = '🔥 '+state.streak;
+  const starCount = accuracy===100?5: accuracy>=80?4: accuracy>=60?3: accuracy>=40?2: accuracy>0?1:0;
+  $('#starsOut').textContent = '★'.repeat(starCount)+'☆'.repeat(5-starCount);
+  const rTray=$('#resultTray'); rTray.innerHTML='';
+  state.original.forEach((c,i)=>{
+    const el=document.createElement('div');
+    el.className='card'+(state.player[i]===c.id?' correct':' wrong');
+    el.innerHTML=`<div class="ic">${c.ic}</div><div class="nm">${c.nm}</div>`;
+    rTray.appendChild(el);
+  });
+  if(accuracy===100) launchConfetti();
+  addToLeaderboard(score, accuracy, timeSec);
+}
+
+function launchConfetti(){
+  const colors=['#FFB020','#FF6B4A','#2FAE5B','#1E88A8','#C64FDB'];
+  const c=$('#confetti');
+  for(let i=0;i<60;i++){
+    const p=document.createElement('div');
+    p.className='confetti-piece';
+    p.style.left=Math.random()*100+'%';
+    p.style.background=colors[i%colors.length];
+    p.style.animationDuration=(2+Math.random()*1.5)+'s';
+    p.style.animationDelay=(Math.random()*.4)+'s';
+    c.appendChild(p);
+    setTimeout(()=>p.remove(),4000);
+  }
+}
+
+// leaderboard (local mock data)
+let leaderboard=[
+ {name:'MemoryMaster',level:'Adult',score:980,acc:100,time:8.2},
+ {name:'FoodBrain',level:'Teen',score:920,acc:100,time:9.1},
+ {name:'FastMind',level:'Adult',score:890,acc:90,time:10.4},
+ {name:'SnackSage',level:'Kid',score:760,acc:100,time:11.5},
+];
+function renderLB(){
+  const body=$('#lbBody'); body.innerHTML='';
+  leaderboard.slice().sort((a,b)=>b.score-a.score).forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td>${r.name}</td><td>${r.level}</td><td>${r.score}</td><td>${r.acc}%</td><td>${r.time.toFixed(1)}s</td>`;
+    body.appendChild(tr);
+  });
+}
+function addToLeaderboard(score,acc,time){
+  leaderboard.push({name:'YOU',level:MODES[state.mode].label,score,acc,time});
+  renderLB();
+}
+renderLB();
+</script>
+</body>
+</html>
